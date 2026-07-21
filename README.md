@@ -23,6 +23,8 @@ Anthropic 工程博客精读笔记库。每篇文章整理为结构化双语文�
 | [Effective Harnesses for Long-Running Agents](./effective-harnesses-for-long-running-agents/) | 初始化 Agent + 编码 Agent 双阶段架构、跨上下文窗口进度追踪 | 中级 |
 | [Multi-Agent Research System](./multi-agent-research-system/) | Opus 4 主 Agent + Sonnet 4 子 Agent、8 条提示工程原则、90.2% 性能提升 | 高级 |
 | [Building a C Compiler with Parallel Claudes](./building-c-compiler/) | 16 个并行 Agent 构建 10 万行 C 编译器、锁文件协调、GCC oracle 验证 | 高级 |
+| [Harness Design for Long-Running Apps](./harness-design-long-running-apps/) | Planner/Generator/Evaluator 三 Agent、GAN 式生成-评估分离、模型变强则 Harness 变简 | 高级 |
+| [Scaling Managed Agents](./managed-agents/) | 脑与手解耦、session/harness/sandbox 三层接口、TTFT p50 降 60%、元 Harness | 高级 |
 
 ### 工具设计与使用
 
@@ -53,6 +55,8 @@ Anthropic 工程博客精读笔记库。每篇文章整理为结构化双语文�
 |------|----------|------|
 | [Claude Code Best Practices](./claude-code-best-practices/) | 4 阶段工作流（探索→规划→编码→提交）、CLAUDE.md、上下文窗口管理 | 初中级 |
 | [Claude Code Sandboxing](./claude-code-sandboxing/) | 84% 权限提示减少、bubblewrap/seatbelt 沙盒、Web 云沙盒 | 中级 |
+| [Claude Code Auto Mode](./claude-code-auto-mode/) | 两层防御、Sonnet 4.6 两阶段分类器、假阳率 8.5%→0.4%、拒绝即继续 | 中高级 |
+| [How We Contain Claude](./how-we-contain-claude/) | 三产品隔离范式、爆炸半径控制、环境层优先、自建组件即最弱环节 | 中高级 |
 
 ### 评估与可靠性
 
@@ -60,6 +64,7 @@ Anthropic 工程博客精读笔记库。每篇文章整理为结构化双语文�
 |------|----------|------|
 | [Demystifying Evals for AI Agents](./demystifying-evals-for-ai-agents/) | 评估分类法、3 种评分器类型、Agent 专项评估方案 | 中级 |
 | [A Postmortem of Three Recent Issues](./a-postmortem-of-three-recent-issues/) | 3 个基础设施 Bug（路由/TPU 配置/XLA 编译器）、Aug-Sep 2025 事故复盘 | 中级 |
+| [April 23 Postmortem: Claude Code 质量复盘](./april-23-postmortem/) | 推理档位回退、thinking 缓存 Bug、简洁度提示词降质 3%、2026 年 3-4 月复盘 | 中级 |
 | [Infrastructure Noise in Agentic Evals](./infrastructure-noise/) | 基础设施配置造成 6pp 分数波动、3pp 怀疑阈值、资源限制两阶段影响 | 中高级 |
 | [Eval Awareness in BrowseComp](./eval-awareness-browsecomp/) | 模型自主识别评估、解密加密答案、多 Agent 3.7x 污染放大 | 高级 |
 | [Designing AI-Resistant Technical Evaluations](./AI-resistant-technical-evaluations/) | AI 超越 90% 人类面试者、约束编程谜题、真实性 vs 抗 AI 性取舍 | 中级 |
@@ -83,7 +88,9 @@ Anthropic Engineering Blog
 │   └── 长任务架构
 │       ├── Harness 框架（初始化 + 编码 Agent）
 │       ├── Multi-Agent（主 Agent 协调子 Agent）
-│       └── 并行 Agent 构建编译器（16 实例协作）
+│       ├── 并行 Agent 构建编译器（16 实例协作）
+│       ├── 生成-评估分离（Planner/Generator/Evaluator）
+│       └── 元 Harness（脑-手-会话三层解耦）
 │
 ├── 工具生态
 │   ├── 工具设计原则（5条）
@@ -107,11 +114,14 @@ Anthropic Engineering Blog
 │   ├── 4 阶段工作流
 │   ├── CLAUDE.md 配置
 │   ├── Agent Skills 框架
-│   └── 沙盒安全机制
+│   ├── 沙盒安全机制
+│   ├── Auto Mode（分类器替代权限提示）
+│   └── 跨产品隔离（容器/本地/虚拟机三范式）
 │
 └── 系统可靠性
     ├── Eval 体系（任务/试验/评分器）
     ├── 基础设施事故复盘
+    ├── Claude Code 质量复盘（2026 年 3-4 月）
     ├── 基础设施噪声（6pp 评估波动）
     ├── 评估感知行为（模型识别基准测试）
     ├── 抗 AI 技术评估（面试设计挑战）
@@ -134,6 +144,11 @@ Anthropic Engineering Blog
 | 16 个并行 Agent 构建 **10 万行**编译器，成本 **$20K** | Building C Compiler |
 | Claude Opus 4 超越 **90%** 人类面试者 | AI-Resistant Technical Evaluations |
 | Claude 3.5 Sonnet 达到 SWE-bench **49%** SOTA | SWE-bench Sonnet |
+| 用户批准了约 **93%** 的权限提示（批准疲劳） | Claude Code Auto Mode / How We Contain Claude |
+| 两阶段分类器把假阳率从 8.5% 降到 **0.4%** | Claude Code Auto Mode |
+| 脑手解耦后 TTFT p50 降 **60%**、p95 降 **90%+** | Scaling Managed Agents |
+| 三 Agent Harness vs 单 Agent：6 小时/$200 vs 20 分钟/$9 | Harness Design for Long-Running Apps |
+| 简洁度系统提示词导致输出质量下降 **3%** | April 23 Postmortem |
 
 ---
 
@@ -151,7 +166,9 @@ Building Effective Agents
 Writing Tools for Agents
   → Effective Context Engineering for AI Agents
   → Effective Harnesses for Long-Running Agents
+  → Harness Design for Long-Running Apps
   → Multi-Agent Research System
+  → Scaling Managed Agents
 ```
 
 **专项深入**（特定技术）：
@@ -160,5 +177,6 @@ Writing Tools for Agents
 检索增强：Contextual Retrieval
 评估体系：Demystifying Evals → Infrastructure Noise → Eval Awareness BrowseComp → SWE-bench Sonnet
 编码能力：SWE-bench Sonnet → AI-Resistant Technical Evaluations → Building C Compiler
-安全机制：Claude Code Sandboxing
+安全机制：Claude Code Sandboxing → Claude Code Auto Mode → How We Contain Claude
+事故复盘：A Postmortem of Three Recent Issues → April 23 Postmortem
 ```
